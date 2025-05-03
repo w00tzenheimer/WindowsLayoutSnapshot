@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -12,6 +13,19 @@ namespace WindowsLayoutSnapshot {
 
         private Dictionary<IntPtr, WINDOWPLACEMENT> m_placements = new Dictionary<IntPtr, WINDOWPLACEMENT>();
         private List<IntPtr> m_windowsBackToTop = new List<IntPtr>();
+
+        internal DateTime TimeTaken { get; private set; }
+        internal bool UserInitiated { get; private set; }
+        internal long[] MonitorPixelCounts { get; private set; }
+        internal int NumMonitors { get; private set; }
+        
+        internal int NumWindows => m_placements.Count;
+
+        // Key that is different when the monitors are different
+        internal long MonitorsKey { get; private set; }
+        
+        // Key that is different when the monitors are different or when UserInitiated is different
+        internal long GroupKey { get; private set; }
 
         private Snapshot(bool userInitiated) {
             EnumWindows(EvalWindow, 0);
@@ -25,16 +39,56 @@ namespace WindowsLayoutSnapshot {
             }
             MonitorPixelCounts = pixels.ToArray();
             NumMonitors = pixels.Count;
+            InitGroupKeys();
         }
 
         internal static Snapshot TakeSnapshot(bool userInitiated) {
             return new Snapshot(userInitiated);
         }
 
-        private bool EvalWindow(int hwndInt, int lParam) {
+        internal TimeSpan GetAge(DateTime utcNow) {
+            return utcNow - TimeTaken;
+        }
+
+        internal bool EqualWindows(Snapshot a, bool positionOnly = true)
+        {
+            if (!(this.UserInitiated == a.UserInitiated
+                && NumMonitors == a.NumMonitors
+                && MonitorPixelCounts.SequenceEqual(a.MonitorPixelCounts)
+                && m_placements.Count == a.m_placements.Count))
+            {
+                return false;
+            }
+
+            // Order doesn't matter:
+            long h1 = m_placements.Sum(pair => HashUtil.Hash(pair.Value, positionOnly) * 3 + pair.Key.ToInt64());
+            long h2 = a.m_placements.Sum(pair => HashUtil.Hash(pair.Value, positionOnly) * 3 + pair.Key.ToInt64());
+
+            return h1 == h2;
+        }
+
+        // Initialize MonitorsKey and GroupKey
+        private void InitGroupKeys()
+        {
+            long h = 0;
+            foreach (var pixels in MonitorPixelCounts)
+            {
+                h = h * 7 + pixels;
+            }
+
+            this.MonitorsKey = h;
+
+            h *= 2;
+            if (UserInitiated) ++h;
+            this.GroupKey = h;
+        }
+
+        private bool EvalWindow(int hwndInt, int lParam)
+        {
             var hwnd = new IntPtr(hwndInt);
 
-            if (!IsAltTabWindow(hwnd)) {
+            if (!IsAltTabWindow(hwnd))
+            {
                 return true;
             }
 
@@ -43,21 +97,13 @@ namespace WindowsLayoutSnapshot {
 
             var placement = new WINDOWPLACEMENT();
             placement.length = Marshal.SizeOf(typeof(WINDOWPLACEMENT));
-            if (!GetWindowPlacement(hwnd, ref placement)) {
+            if (!GetWindowPlacement(hwnd, ref placement))
+            {
                 throw new Exception("Error getting window placement");
             }
             m_placements.Add(hwnd, placement);
 
             return true;
-        }
-
-        internal DateTime TimeTaken { get; private set; }
-        internal bool UserInitiated { get; private set; }
-        internal long[] MonitorPixelCounts { get; private set; }
-        internal int NumMonitors { get; private set; }
-
-        internal TimeSpan Age {
-            get { return DateTime.UtcNow.Subtract(TimeTaken); }
         }
 
         internal void RestoreAndPreserveMenu(object sender, EventArgs e) { // ignore extra params
@@ -224,7 +270,7 @@ namespace WindowsLayoutSnapshot {
         private static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct WINDOWPLACEMENT {
+        public struct WINDOWPLACEMENT {
             public int length;
             public int flags;
             public int showCmd;
@@ -234,7 +280,7 @@ namespace WindowsLayoutSnapshot {
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct RECT {
+        public struct RECT {
             public int Left;
             public int Top;
             public int Right;
