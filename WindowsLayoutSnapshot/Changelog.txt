@@ -1,0 +1,14 @@
+﻿5/1/2025
+	- Migrate to latest .net framework (4.8)
+	- Ensure we always keep the latest manually taken snapshot.
+	- Add number of open windows in the menu items text.
+	- Add exception handlers
+	- Add 'x' icon for the 'close' menu item, so I don't misclick it again. 
+5/2/2025
+	- Delete the ridiculous code that modified private static member of MenuItem
+	- add (xx ago) in the menu item
+	- always show the monitor icons to look more fancy
+	- refresh the menu every time before open, so the (xx ago) is correct
+	- track the recorded windows in separate collections per monitor set
+	- limit the number of snapshots per monitor set
+	- display the screenshots for the current monitor set separately
