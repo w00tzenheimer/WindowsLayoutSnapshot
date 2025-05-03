@@ -17,8 +17,6 @@ namespace WindowsLayoutSnapshot {
         private Dictionary<long, (List<Snapshot> userSnapshots, List<Snapshot> autoSnapshots)> m_monitorsKeyToSnapshots = new Dictionary<long, (List<Snapshot> userSnapshots, List<Snapshot> autoSnapshots)>();
         private long currentMonitorsKey;
         private Snapshot m_menuShownSnapshot = null;
-        private Padding? m_originalTrayMenuArrowPadding = null;
-        private Padding? m_originalTrayMenuTextPadding = null;
 
         internal static ContextMenuStrip me { get; set; }
 
