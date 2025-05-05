@@ -25,7 +25,7 @@ The app takes a "snapshot" of your windows layouts every thirty minutes.  You ca
 * Snapshots are not stored across app instances (or, thus, restarts).
 
 #### Screenshot
-<img src="https://github.com/Hursev/WindowsLayoutSnapshot/master/screenshot.png" />
+<img src="https://raw.githubusercontent.com/Hursev/WindowsLayoutSnapshot/master/screenshot.png" />
 
 #### License
 This app and its source code are released into the public domain.
