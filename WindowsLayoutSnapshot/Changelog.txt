@@ -14,3 +14,6 @@
 	- display the screenshots for the current monitor set separately
 5/4/2025
 	- Fix format strings to be compatible with .Net Framework
+	- Remove useless reflection hacks.
+5/7/2025
+	- Convert to .Net Core

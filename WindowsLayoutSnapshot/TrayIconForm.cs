@@ -16,9 +16,9 @@ namespace WindowsLayoutSnapshot {
         private Timer m_snapshotTimer = new Timer();
         private Dictionary<long, (List<Snapshot> userSnapshots, List<Snapshot> autoSnapshots)> m_monitorsKeyToSnapshots = new Dictionary<long, (List<Snapshot> userSnapshots, List<Snapshot> autoSnapshots)>();
         private long currentMonitorsKey;
-        private Snapshot m_menuShownSnapshot = null;
+        private Snapshot? m_menuShownSnapshot = null;
 
-        internal static ContextMenuStrip me { get; set; }
+        internal static ContextMenuStrip me { get; set; } = null!;
 
         public TrayIconForm() {
             InitializeComponent();
@@ -34,7 +34,7 @@ namespace WindowsLayoutSnapshot {
             TakeSnapshot(false);
         }
 
-        private void snapshotTimer_Tick(object sender, EventArgs e) {
+        private void snapshotTimer_Tick(object? sender, EventArgs e) {
             ExceptionUtils.Protected(() => TakeSnapshot(false));
         }
 
@@ -59,7 +59,7 @@ namespace WindowsLayoutSnapshot {
         }
 
         private void justNowToolStripMenuItem_MouseEnter(object sender, EventArgs e) {
-            ExceptionUtils.Protected(() => SnapshotMousedOver(sender, e));
+            SnapshotMousedOverSafe(sender, e);
         }
 
         private void quitToolStripMenuItem_Click(object sender, EventArgs e)
@@ -172,9 +172,12 @@ namespace WindowsLayoutSnapshot {
         }
 
         private class RightImageToolStripMenuItem : ToolStripMenuItem {
-            public RightImageToolStripMenuItem(string text)
-                : base(text) {
+            public RightImageToolStripMenuItem(string text, float[] monitorSizes)
+                : base(text)
+            {
+                this.MonitorSizes = monitorSizes;
             }
+
             public float[] MonitorSizes { get; set; }
             protected override void OnPaint(PaintEventArgs e) {
                 base.OnPaint(e);
@@ -262,22 +265,16 @@ namespace WindowsLayoutSnapshot {
                     newMenuItems.Add(snapshotListStartLine2);
                 }
 
-                var menuItem = new RightImageToolStripMenuItem(MakeMenuItemText(snapshot, utcNow));
+                float[] monitorSizes = showMonitorIcons ? GetMonitorSizes(snapshot, maxNumMonitorPixels) : new float[0];
+
+                var menuItem = new RightImageToolStripMenuItem(MakeMenuItemText(snapshot, utcNow), monitorSizes);
                 menuItem.Tag = snapshot;
-                menuItem.Click += snapshot.Restore;
-                menuItem.MouseEnter += SnapshotMousedOver;
+                menuItem.Click += snapshot.RestoreSafe;
+                menuItem.MouseEnter += SnapshotMousedOverSafe;
                 if (snapshot.UserInitiated) {
                     menuItem.Font = new Font(menuItem.Font, FontStyle.Bold);
                 }
-
-                // monitor icons
-                var monitorSizes = new List<float>();
-                if (showMonitorIcons) {
-                    foreach (var monitorPixels in snapshot.MonitorPixelCounts) {
-                        monitorSizes.Add((float)Math.Sqrt(((float)monitorPixels) / maxNumMonitorPixels));
-                    }
-                }
-                menuItem.MonitorSizes = monitorSizes.ToArray();
+                menuItem.MonitorSizes = monitorSizes;
 
                 newMenuItems.Add(menuItem);
             }
@@ -289,12 +286,12 @@ namespace WindowsLayoutSnapshot {
 
             if (showMonitorIcons)
             {
-                int maxTextLen = newMenuItems.Max(x => x.Text.Trim().Length);
+                int maxTextLen = newMenuItems.Max(x => x.Text != null ? x.Text.Trim().Length : 0);
                 int addPad = 4 + 4 * maxNumMonitors; // delimiter space + space for each icon
                 int targetWidth = maxTextLen + addPad;
                 foreach (var menuItem in newMenuItems)
                 {
-                    if (menuItem.Text.Length < targetWidth)
+                    if (menuItem.Text?.Length < targetWidth)
                     {
                         menuItem.Text = menuItem.Text.PadRight(targetWidth);
                     }
@@ -303,8 +300,17 @@ namespace WindowsLayoutSnapshot {
 
             trayMenu.Items.Clear();
             trayMenu.Items.AddRange(newMenuItems.ToArray());
-        }
 
+            static float[] GetMonitorSizes(Snapshot snapshot, long maxNumMonitorPixels)
+            {
+                var monitorSizes = new List<float>();
+                foreach (var monitorPixels in snapshot.MonitorPixelCounts)
+                {
+                    monitorSizes.Add((float)Math.Sqrt(((float)monitorPixels) / maxNumMonitorPixels));
+                }
+                return monitorSizes.ToArray();
+            }
+        }
         // Always returns new list
         private List<Snapshot> CondenseSnapshots(int maxNumSnapshots, out int nCurrentMonitorElements) {
             if (maxNumSnapshots < 2) {
@@ -336,7 +342,20 @@ namespace WindowsLayoutSnapshot {
             return snapshots;
         }
 
-        private void SnapshotMousedOver(object sender, EventArgs e) {
+        private void SnapshotMousedOverSafe(object? sender, EventArgs e)
+        {
+            ExceptionUtils.Protected(() => SnapshotMousedOver(sender, e));
+        }
+
+        private void SnapshotMousedOver(object? sender, EventArgs e) {
+            ToolStripMenuItem? toolStripMenuItem = sender as ToolStripMenuItem;
+            if (toolStripMenuItem == null)
+                return;
+            
+            var tag = (Snapshot?)toolStripMenuItem.Tag;
+            if (tag == null)
+                return;
+
             // We save and restore the current foreground window because it's our tray menu
             // I couldn't find a way to get this handle straight from the tray menu's properties;
             //   the ContextMenuStrip.Handle isn't the right one, so I'm using win32
@@ -344,7 +363,7 @@ namespace WindowsLayoutSnapshot {
             var currentForegroundWindow = GetForegroundWindow();
 
             try {
-                ((Snapshot)(((ToolStripMenuItem)sender).Tag)).Restore(sender, e);
+                tag.Restore(sender, e);
             } finally {
                 // A combination of SetForegroundWindow + SetWindowPos (via set_Visible) seems to be needed
                 // This was determined by trying a bunch of stuff
