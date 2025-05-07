@@ -77,19 +77,25 @@ namespace WindowsLayoutSnapshot {
             // the context menu won't show by default on left clicks.  we're going to have to ask it to show up.
             if (e.Button == MouseButtons.Left)
             {
-                try
+                // I don't see why we need all these hacks when this works fine:
+                trayMenu.Show(Cursor.Position);
+
+                /*
+                // try using reflection to get to the private ShowContextMenu() function...which really 
+                // should be public but is not.
+                var showContextMenuMethod = trayIcon.GetType().GetMethod("ShowContextMenu",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                if (showContextMenuMethod != null)
                 {
-                    // try using reflection to get to the private ShowContextMenu() function...which really 
-                    // should be public but is not.
-                    var showContextMenuMethod = trayIcon.GetType().GetMethod("ShowContextMenu",
-                        BindingFlags.NonPublic | BindingFlags.Instance);
                     showContextMenuMethod.Invoke(trayIcon, null);
                 }
-                catch (Exception)
+                else
                 {
-                    // something went wrong with out hack -- fall back to a shittier approach
+                    // fallback:
+                    // The difference is that trayMenu.Show will show it on the right of the cursor instead of on the left.
                     trayMenu.Show(Cursor.Position);
                 }
+                */
             }
         }
 
