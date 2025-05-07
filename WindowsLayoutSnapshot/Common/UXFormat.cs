@@ -42,11 +42,11 @@ namespace WindowsLayoutSnapshot
                     : t.ToString("F", NumberFormatInfo.InvariantInfo) + "ms";
             }
 
-            if (sec < 60) return ts.ToString(@"s\ \s\e\c", NumberFormatInfo.InvariantInfo);
-            if (sec < 60 * 60) return ts.ToString(@"mm\:ss\ \m\i\n", NumberFormatInfo.InvariantInfo);
-            if (sec < 24 * 60 * 60) return ts.ToString(@"hh\:mm\ \h", NumberFormatInfo.InvariantInfo);
+            if (sec < 60) return ts.ToString(@"s' sec'", NumberFormatInfo.InvariantInfo);
+            if (sec < 60 * 60) return ts.ToString(@"mm\:ss' min'", NumberFormatInfo.InvariantInfo);
+            if (sec < 24 * 60 * 60) return ts.ToString(@"hh\:mm' h'", NumberFormatInfo.InvariantInfo);
 
-            return ts.ToString(@"d\ \d\a\y\s\ hh\:mm\ \h", NumberFormatInfo.InvariantInfo);
+            return ts.ToString(@"d' days 'hh\:mm' h'", CultureInfo.InvariantCulture);
         }
 
         public static bool IsCloseToWholeNumber(double d)
