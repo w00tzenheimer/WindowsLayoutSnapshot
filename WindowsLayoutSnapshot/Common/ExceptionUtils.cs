@@ -8,13 +8,13 @@ namespace WindowsLayoutSnapshot
     {
         public static void Protected(Action action)
         {
-            Exception e = null;
+            Exception? e = null;
 
             try
             {
                 action();
             }
-            catch (Exception ex) when (!(ex is ThreadAbortException))
+            catch (Exception ex) when (ex is not ThreadAbortException)
             {
                 // StackOverflowException - uncatchable
                 // OutOfMemoryException - doesn't matter, it will be re-thrown again soon enough.
