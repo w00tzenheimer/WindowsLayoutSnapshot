@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <OutputType>WinExe</OutputType>
     <UseWindowsForms>true</UseWindowsForms>
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
     <ApplicationIcon>monitor-window-3d-shadow.ico</ApplicationIcon>
     <Nullable>enable</Nullable>
-    <Platforms>x86</Platforms>
+    <Platforms>AnyCPU</Platforms>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
   
