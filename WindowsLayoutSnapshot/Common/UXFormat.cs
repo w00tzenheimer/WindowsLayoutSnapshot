@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 
 namespace WindowsLayoutSnapshot
@@ -17,12 +17,6 @@ namespace WindowsLayoutSnapshot
 
             if (t < 99)
             {
-                // note that TimeSpan can't represent less than 0.001ms
-                // 10.1ms
-                // 1.12ms
-                // 0.123ms
-                // 0.012ms
-                // 0.001ms
                 int digitsAfterPoint = 1;
                 double shifted = t;
                 for (int i = 0; i < 2 && shifted < 10; i++)
@@ -42,16 +36,29 @@ namespace WindowsLayoutSnapshot
                     : t.ToString("F", NumberFormatInfo.InvariantInfo) + "ms";
             }
 
-            if (sec < 60) return ts.ToString(@"s' sec'", NumberFormatInfo.InvariantInfo);
-            if (sec < 60 * 60) return ts.ToString(@"mm\:ss' min'", NumberFormatInfo.InvariantInfo);
-            if (sec < 24 * 60 * 60) return ts.ToString(@"hh\:mm' h'", NumberFormatInfo.InvariantInfo);
+            if (sec < 60)
+            {
+                ts = TimeSpan.FromSeconds(Math.Floor(ts.TotalSeconds));
+                return ts.ToString(@"s'sec'", CultureInfo.InvariantCulture);
+            }
+            if (sec < 60 * 60)
+            {
+                ts = TimeSpan.FromSeconds(Math.Floor(ts.TotalSeconds));
+                return ts.ToString(@"mm\:ss'min'", CultureInfo.InvariantCulture);
+            }
+            if (sec < 24 * 60 * 60)
+            {
+                ts = TimeSpan.FromMinutes(Math.Floor(ts.TotalMinutes));
+                return ts.ToString(@"hh\:mm'h'", CultureInfo.InvariantCulture);
+            }
 
-            return ts.ToString(@"d' days 'hh\:mm' h'", CultureInfo.InvariantCulture);
+            ts = TimeSpan.FromMinutes(Math.Floor(ts.TotalMinutes));
+            return ts.ToString(@"d'days 'hh\:mm'h'", CultureInfo.InvariantCulture);
         }
 
         public static bool IsCloseToWholeNumber(double d)
         {
-            const double EPS_ZERO = 0.0001; // 0.01->1% 0.0001 ->0.01%
+            const double EPS_ZERO = 0.0001;
             d = Math.Abs(d);
             return Math.Abs(Math.Round(d) - d) < EPS_ZERO;
         }
